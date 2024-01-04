@@ -1,21 +1,20 @@
 """
-Pylyze
+PyKMTools
 =====
 
-Pylyze: A data processing tool for python
+PyKMTools: A python tool base for kannmu
+
+OneDArray Tools
 
 Author: Kannmu
 Date: 2024/1/4
 License: MIT License
-Repository: https://github.com/Kannmu/Pylyze
+Repository: https://github.com/Kannmu/PyKMTools
 
 """
 
 # Import necessary modules
 import numpy as np
-import sys
-import warnings
-
 import scipy
 
 def toarray(X, Norm = False, Stand = False):
@@ -39,7 +38,7 @@ def toarray(X, Norm = False, Stand = False):
         if(Stand):
             X = stand(X)
     except Exception as e:
-        raise Exception(f"Pylyze Error: {str(e)}")
+        raise Exception(f"PyKMTools: toarray Error: {str(e)}")
     return X
 
 def norm(X):
@@ -151,10 +150,3 @@ def BandPassFilter(X, SampleRate, lowpass, highpass, FilterLevel):
 
     return Temp
 
-# For Test Usage
-if __name__ == "__main__":
-    X = range(10) + np.sin(range(10))
-    print("Origin: ",X)
-    print("Norm: ",norm(X))
-    print("Stand: ",stand(X))
-    print("Amp_FFT: ",Amp_FFT(X,1,Stand=True))
