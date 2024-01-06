@@ -30,7 +30,7 @@ from torch.utils.data import DataLoader, random_split
 import PyKMTools.OneDArray as OneD
 
 
-class Process:
+class TrainProcess:
     def __init__(
         self,
         Total_Epoch=400,

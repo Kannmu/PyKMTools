@@ -15,7 +15,8 @@ setuptools.setup(
     packages = setuptools.find_packages(),
     install_requires=[
         'numpy>=1.21.0',
-        'scipy>=1.7.0'
+        'scipy>=1.7.0',
+        "ffmpeg"
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',

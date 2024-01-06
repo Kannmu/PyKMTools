@@ -14,6 +14,7 @@ Repository: https://github.com/Kannmu/PyKMTools
 # Import sub modules
 
 import PyKMTools.OneDArray as oned
-import PyKMTools.TrainClassifier as tc
+import PyKMTools.TrainNN as tnn
 import PyKMTools.Draw as dr
+import PyKMTools.Video as vdo
 

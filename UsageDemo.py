@@ -1,15 +1,9 @@
 import PyKMTools as pk
 import numpy as np
 
-X = np.arange(0,100,11)
-# print(pk.OneD.norm(X))
 
-Process = pk.tc.Process(
-    Train_Rate = 0.85,
-    ModelSavePath="./Model/",
-    DataProcessingPath="./UsageDemo.py"
-    )
+Process = pk.tnn.TrainProcess(ModelSavePath="./Model/Test/",DataProcessingPath="./UsageDemo.py")
 
-Process.LoadData(X,[1,2,3,4])
 
-print(Process.Total_Targets)
+Video = pk.vdo.Video("your_video_path/Video_0.mp4")
+Video.FrameExtractor(fps=1, quality=2)
