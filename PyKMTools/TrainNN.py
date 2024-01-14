@@ -19,7 +19,8 @@ import cv2
 import numpy as np
 import torch
 import torch.nn as nn
-
+import matplotlib.pyplot as plt
+import seaborn as sn
 import torchvision
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
@@ -27,7 +28,8 @@ import torch.utils.data as Data
 from torch.utils import data
 from torch.utils.data import DataLoader, random_split
 
-import PyKMTools.OneDArray as OneD
+import PyKMTools.OneDArray as oned
+import PyKMTools.Draw as dr
 
 class Hyperparameters:
     """
@@ -35,16 +37,26 @@ class Hyperparameters:
 
         Parameters
         ----------
-        EPOCH: int
+        Total_Epoch: int, default=400
             Hyperparameter, total epochs to train
-        Learning_Rate: float
+        Learning_Rate: float, default=0.0001
             Hyperparameter, Learning Rate
-        Validate_Per_N_Epoch: int
+        Batch_Size: int, default=32
+            Hyperparameter, Batch size for training
+        Validate_Per_N_Epoch: int, default=3
             Hyperparameter, Perform validation after N epochs
-        Dropout_Rate: float
+        Dropout_Rate: float, default=0.5
             Hyperparameter, Dropout Rate
-        Train_Rate: float
+        Train_Rate: float, default=0.9
             Data parameter, Train Data Rate
+        Weight_Decay: float, default=0.01
+            Hyperparameter, Weight Decay for optimizer
+        N_Targets: int, default=4
+            Hyperparameter, Number of targets for the model
+        RunSavePath: str, default="./Runs/Default/"
+            The path where the trained model will be saved
+        DataProcessingPath: str, default="./UsageDemo.py"
+            The path of the data processing script
     """
     def __init__(self,
             Total_Epoch=400,
@@ -54,8 +66,12 @@ class Hyperparameters:
             Dropout_Rate=0.5,
             Train_Rate=0.9,
             Weight_Decay = 0.01,
-            ModelSavePath="./Model/Default",
+
+            N_Targets = 4,
+            
+            RunSavePath="./Runs/Default/",
             DataProcessingPath="./UsageDemo.py",
+
         ) -> None:
 
         self.Total_Epoch = Total_Epoch
@@ -65,16 +81,19 @@ class Hyperparameters:
         self.Dropout_Rate = Dropout_Rate
         self.Train_Rate = Train_Rate
         self.Weight_Decay = Weight_Decay
-        self.ModelSavePath = ModelSavePath
+
+        self.N_Targets = N_Targets
+
+        self.RunSavePath = RunSavePath
         self.DataProcessingPath = DataProcessingPath
 
 class TrainProcess:
     def __init__(
         self,
-        Hyperparameters,
+        Hyperparameters:Hyperparameters,
         Model,
-        Optimizer,
-        LossFunc
+        Optimizer:str,
+        LossFunc:str
     ) -> None:
         """
         Initialize the training process
@@ -98,17 +117,23 @@ class TrainProcess:
         self.Train_Rate = Hyperparameters.Train_Rate
         self.Weight_Decay = Hyperparameters.Weight_Decay
 
+        self.N_Targets = Hyperparameters.N_Targets
+
+        self.RunSavePath = Hyperparameters.RunSavePath
+        self.DataProcessingPath = Hyperparameters.DataProcessingPath
+
+        self.LossList = []
+        self.AccList = []
+
+        self.InitCheck()
+
+        self.RunSaveFolderInit(self.RunSavePath, self.DataProcessingPath)
 
         self.SetModel(Model)
 
         self.SetOptimizer(Optimizer)
         
         self.SetLossFunc(LossFunc)
-
-        self.InitCheck()
-        self.ModelSaveFolderInit(Hyperparameters.ModelSavePath, Hyperparameters.DataProcessingPath)
-        self.LogList = []
-
 
 
 
@@ -124,7 +149,7 @@ class TrainProcess:
         if not torch.cuda.is_available():
             raise Exception("No GPU detected")
         
-    def CreateDirs(self, ModelSavePath):
+    def CreateDirs(self, RunSavePath):
         """
         Creates the necessary directories for model saving.
 
@@ -140,24 +165,27 @@ class TrainProcess:
 
         This method does not return anything. It will raise an exception if the directories cannot be created, for example, due to insufficient permissions.
         """
-        os.makedirs(ModelSavePath)
-        os.makedirs(ModelSavePath + "Code/")
-        os.makedirs(ModelSavePath + "Log/")
-        os.makedirs(ModelSavePath + "Model/")
-        os.makedirs(ModelSavePath + "Figure/")
+        os.makedirs(RunSavePath)
+        os.makedirs(RunSavePath + "Code/")
+        os.makedirs(RunSavePath + "Log/")
+        self.LogPath = RunSavePath + "Log/"
+        os.makedirs(RunSavePath + "Model/")
+        self.ModelPath = RunSavePath + "Model/"
+        os.makedirs(RunSavePath + "Figure/")
+        self.FigurePath = RunSavePath + "Figure/"
 
-    def ModelSaveFolderInit(self, ModelSavePath, DataProcessingPath):
+    def RunSaveFolderInit(self, RunSavePath, DataProcessingPath):
         """
-        Initializes the model save folder.
+        Initializes the run save folder.
 
         Parameters:
         ----------
-            ModelSavePath: str
+            RunSavePath: str
                 The path to save the model. If the path already exists, the user is asked whether to overwrite it.
             DataProcessingPath: str
                 The path of the data processing code. This code file will be copied into the 'Code' folder under the model save path.
 
-        The method attempts to create a directory under the given ModelSavePath. If the directory already exists, it asks the user whether to overwrite it.
+        The method attempts to create a directory under the given RunSavePath. If the directory already exists, it asks the user whether to overwrite it.
         
         If the user chooses to overwrite, it deletes the existing directory and recreates it. If the user chooses not to overwrite, they are asked to input a new model save path.
         
@@ -166,47 +194,47 @@ class TrainProcess:
         If the 'Log.txt' file does not exist, it creates a new 'Log.txt' file.
         """
         try:
-            self.CreateDirs(ModelSavePath)
+            self.CreateDirs(RunSavePath)
         except Exception as e:
             # print(e)
             YESORNOT = input(
-                str(ModelSavePath) + "is already exist, overlap it? [yes/no] "
+                str(RunSavePath) + "is already exist, overlap it? [yes/no] "
             )
             if YESORNOT == "yes":
-                print("Files in ", ModelSavePath, " deleted")
-                shutil.rmtree(ModelSavePath)
-                self.CreateDirs(ModelSavePath)
+                print("Files in ", RunSavePath, " deleted")
+                shutil.rmtree(RunSavePath)
+                self.CreateDirs(RunSavePath)
             elif YESORNOT == "no":
-                ModelSavePath = input("Input another model save path")
+                RunSavePath = input("Input another model save path")
             else:
                 raise Exception("Wrong Input")
 
         CodeSavePath = str(DataProcessingPath.split("/")[-1])
         # print(CodeSavePath)
         shutil.copy(
-            DataProcessingPath, ModelSavePath + "Code/" + CodeSavePath
+            DataProcessingPath, RunSavePath + "Code/" + CodeSavePath
         )
 
-        Temp_ACC = 0
-        Temp_Loss = np.inf
+        self.Temp_ACC = 0
+        self.Temp_Loss = np.inf
 
         try:
-            F = open("./" + ModelSavePath + "Log/" + "Log.txt", "r")
+            F = open("./" + self.LogPath + "Log.txt", "r")
             Line = F.readline()
             if Line != "":
                 print(Line)
-                Temp_ACC = float(Line[9:20])
-                Temp_Loss = float(Line[38:47])
-                print("Highest Acc so far is: ", Temp_ACC)
-                print("Lowest Loss so far is: ", Temp_Loss)
+                self.Temp_ACC = float(Line[9:20])
+                self.Temp_Loss = float(Line[38:47])
+                print("Highest Acc so far is: ", self.Temp_ACC)
+                print("Lowest Loss so far is: ", self.Temp_Loss)
             else:
-                Temp_ACC = 0.0
-                Temp_Loss = np.inf
+                self.Temp_ACC = 0.0
+                self.Temp_Loss = np.inf
             F.close()
         except Exception as e:
-            F = open("./" + ModelSavePath + "Log/" + "Log.txt", "w+")
-            Temp_ACC = 0.0
-            Temp_Loss = np.inf
+            F = open("./" + self.LogPath + "Log.txt", "w+")
+            self.Temp_ACC = 0.0
+            self.Temp_Loss = np.inf
             F.close()
             print("Create new log file")
 
@@ -237,6 +265,7 @@ class TrainProcess:
         Targets: OneDArray-like
             Target Labels
         """
+        print("Loading Data\n")
         try:
             self.Total_Inputs = np.asarray(Inputs)
             self.Total_Targets = np.asarray(Targets)
@@ -248,9 +277,9 @@ class TrainProcess:
         
         self.TotalDataset = self.Dataset(self)
 
-        TrainSize = int(self.Train_Rate*len(self.Total_Targets))
-        TestSize = len(self.Total_Targets) - TrainSize
-        self.TrainDataset, self.ValDataset = random_split(self.TotalDataset, [TrainSize, TestSize])
+        self.TrainSize = int(self.Train_Rate*len(self.Total_Targets))
+        self.ValSize = len(self.Total_Targets) - self.TrainSize
+        self.TrainDataset, self.ValDataset = random_split(self.TotalDataset, [self.TrainSize, self.ValSize])
 
         self.TrainLoader = DataLoader(
             self.TrainDataset,
@@ -267,9 +296,7 @@ class TrainProcess:
             drop_last=True,
         )
 
-    def SetModel(self, Model, N_Targets = 4, ResnetChannel = 3): 
-        self.N_Targets = N_Targets
-        print(type(Model))
+    def SetModel(self, Model, ResnetChannel = 3): 
         if(type(Model) == str):
             if(Model in ["Resnet18","resnet18","resnet 18","resnet-18","Resnet-18"]):
                 print("Using Resnet18 Model")
@@ -278,56 +305,55 @@ class TrainProcess:
                 self.Model.fc = nn.Sequential(nn.Linear(num_ftrs, self.N_Targets))
                 self.Model.conv1 = nn.Conv2d(ResnetChannel, 64, kernel_size = 3, stride=2, padding = 1, bias=False)
         else:
-            
             print("Using Self Defined Model")
             self.Model = Model
 
     def SetOptimizer(self, Optimizer):
         if(type(Optimizer) == str):
             if(Optimizer == "Adam"):
-                print("Using CrossEntropy Loss Function")
                 self.Optimizer = torch.optim.Adam(self.Model.parameters(),lr = self.Learning_Rate)
             if(Optimizer == "AdamW"):
-                print("Using CrossEntropy Loss Function")
                 self.Optimizer = torch.optim.AdamW(self.Model.parameters(),lr = self.Learning_Rate, weight_decay = self.Weight_Decay)
         else:
-            raise Exception(f"PyKMTools: LossFunc Error: Wrong input loss function name")
+            raise Exception(f"PyKMTools: LossFunc Error: Wrong input Optimizer name")
+        print("Using ",Optimizer," Optimizer")
 
     def SetLossFunc(self, LossFunc):
         if(type(LossFunc) == str):
             if(LossFunc == "CrossEntropy"):
-                print("Using CrossEntropy Loss Function")
                 self.Loss_func = nn.CrossEntropyLoss()
         else:
             raise Exception(f"PyKMTools: LossFunc Error: Wrong input loss function name")
+        print("Using ",LossFunc," loss function")
 
-    def Start(self):
+    def StartTrain(self):
         """
         Start Training Process
 
         """
+        print("Start Training Process \n")
         self.Model.train()
         for Epoch in range(self.Total_Epoch):
             self.Model.train()
             Correct_All = 0
             Train_Loss_List = []
-            for Step, (Train_Data, Train_Label) in enumerate(self.TrainLoader):
-                Train_Data, Train_Label = Train_Data.cuda(), Train_Label.cuda()
+            for Step, (Train_Input, Train_Target) in enumerate(self.TrainLoader):
+                Train_Input, Train_Target = Train_Input.cuda(), Train_Target.cuda()
 
-                Output =  self.Model(Train_Data)
+                Train_Output =  self.Model(Train_Input)
 
-                Loss = self.Loss_func(Output, Train_Label)
+                Loss = self.Loss_func(Train_Output, Train_Target)
 
-                nn.utils.clip_grad_norm_( self.Model.parameters(), max_norm=20, norm_type=2)
+                nn.utils.clip_grad_norm_(self.Model.parameters(), max_norm=20, norm_type=2)
 
-                self.SetOptimizer.zero_grad()
+                self.Optimizer.zero_grad()
 
                 Loss.backward()
 
-                self.SetOptimizer.step()
+                self.Optimizer.step()
 
-                _, Prediction = torch.max(Output.data, 1)
-                Correct_All += torch.sum(Prediction == Train_Label.data).to(torch.float32)
+                _, Prediction = torch.max(Train_Output.data, 1)
+                Correct_All += torch.sum(Prediction == Train_Target.data).to(torch.float32)
                 Train_Loss_List.append(Loss)
 
                 # Print Training Info
@@ -335,16 +361,88 @@ class TrainProcess:
                     print(
                         "Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tAcc:{:.6f}\tCorrectNum:{:.0f}".format(
                             Epoch,
-                            Step * len(Train_Data),
-                            len(self.TrainLoader.dataset),
+                            Step * len(Train_Input),
+                            self.TrainSize,
                             100.0 * Step / len(self.TrainLoader),
-                            torch.mean(torch.tensor(Train_Loss_List)),
-                            float(Correct_All / len(self.TrainLoader.dataset)),
+                            round(torch.mean(torch.tensor(Train_Loss_List)), 3),
+                            round(float(Correct_All / self.TrainSize), 3),
                             Correct_All,
                         )
                     )
                     Train_Loss_List = []
 
             if Epoch % self.Validate_Per_N_Epoch == 0 and Epoch > 0:
-                Val()
+                self.Validate()
+    
+    def Validate(self):
         
+        Correct_All_Val = 0
+        print("\n Start Validate")
+
+        # Switch Model To Evaluation Mode
+        self.Model.eval()
+        CM = torch.zeros(self.N_Targets, self.N_Targets)
+        for Val_Step, (Val_Data, Val_Label) in enumerate(self.ValLoader):
+            Val_Data, Val_Label = Val_Data.cuda(), Val_Label.cuda()
+            print(Val_Step)
+
+            Val_Outputs = self.Model(Val_Data)
+
+            Val_Loss = self.Loss_func(Val_Outputs, Val_Label)
+            _, Prediction = torch.max(Val_Outputs.data, 1)
+
+            Correct_All_Val += torch.sum(Prediction == Val_Label.data).to(torch.float32)
+
+            CM = self.Calculate_CM(Val_Outputs, Val_Label, CM)
+
+        ACC = float(Correct_All_Val / self.ValSize)
+
+        try:
+            Val_Loss_Value = Val_Loss.item()
+            print(
+                "Val_Acc: ",
+                round(ACC,3),
+                "Val_Loss: ",
+                round(Val_Loss_Value,3),
+                "CorrectNum:",
+                int(Correct_All_Val),
+            )
+        except:
+            Val_Loss_Value = np.inf
+            print("Wrond Loss Value","Val_Acc: ",ACC)
+        self.LossList.append(Val_Loss_Value)
+        self.AccList.append(ACC)
+
+        self.Save_Model(ACC = ACC, Loss = Val_Loss_Value, CM=CM)
+        
+        print("Finish Validate \n")
+    
+    def Calculate_CM(preds, labels, conf_matrix):
+        preds = torch.argmax(preds, 1)
+        for p, t in zip(preds, labels):
+            conf_matrix[p, t] += 1
+        return conf_matrix
+
+    def Save_Model(self, ACC:float, ValLoss:float, CM):
+        # Save Model
+        if ACC > self.Temp_ACC:
+            self.Temp_ACC = ACC
+            # Save The Best Model On Validation
+            F = open("./" + self.RunSavePath + "/Log/" + "Log.txt", "w+")
+            F.writelines(
+                "Val_Acc: "
+                + str(ACC)
+                + " Val_Loss: "
+                + str(ValLoss)
+                + " Val_Loss_List: "
+                + str(self.LossList)
+            )
+            F.close()
+            # Save Model
+            torch.save(self.Model.state_dict(), self.ModelPath + "Model.pth")
+            torch.save(self.Model, "./" + self.ModelPath + "Model.h5")
+
+            # Save CM Figure
+            dr.HeatMapAndSave(CM, self.FigurePath + "Confusion Matrix.png")
+            # Save Loss and Acc Curve
+            dr.PlotAndSaveND(np.array([self.LossList,self.AccList]), self.FigurePath + "LossPlot.png",InputLabels=["Loss","Accuracy"])

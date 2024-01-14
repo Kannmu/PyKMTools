@@ -11,13 +11,26 @@ class Model(nn.Module):
         X = self.fc1(X)
         X = self.output(X)
 
+
 DenseModel = Model()
 
-Process = pk.tnn.TrainProcess(ModelSavePath="./Runs/Test/",DataProcessingPath="./UsageDemo.py")
+Hyperparameters = pk.tnn.Hyperparameters(
+    N_Targets=4,
+    RunSavePath="./Runs/Test/",
+    DataProcessingPath="./UsageDemo.py"
+
+)
+
+Process = pk.tnn.TrainProcess(
+    Hyperparameters = Hyperparameters, 
+    Model=DenseModel, 
+    Optimizer="AdamW",
+    LossFunc="CrossEntropy"
+)
 
 Process.LoadData([[1,2], [2,3], [3,4], [4,5],[1.5,2.5], [2.5,3.5], [3.5,4.5], [4.5,5.5]], [0,1,2,3,0,1,2,3])
 
-Process.Model(DenseModel,N_Targets = 4)
+Process.StartTrain()
 
 # Video = pk.vdo.Video("your_video_path/Video_0.mp4")
 # Video.FrameExtractor(fps=1, quality=2)
