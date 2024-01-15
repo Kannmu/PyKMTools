@@ -16,7 +16,6 @@ Repository: https://github.com/Kannmu/PyKMTools
 import sys
 
 sys.path.append('D:\Data\OneDrive\Projects\Mediapy')
-# print(sys.path)
 
 import PyKMTools.OneDArray as oned
 import PyKMTools.TrainNN as tnn
