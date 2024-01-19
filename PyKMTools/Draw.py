@@ -11,57 +11,67 @@ License: MIT License
 Repository: https://github.com/Kannmu/PyKMTools
 """
 import numpy as np
-import PyKMTools.OneDArray as oned
+import PyKMTools.Data as d
 import matplotlib.pyplot as plt
 import seaborn as sn
 
 # plt.style.use("seaborn-v0_8")
 plt.rcParams["font.family"] = ["Times New Roman"]
 
-def PlotAndSaveOneD(X, SavePath:str, Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
+def PlotOneD(X, SavePath:str = None,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
     plt.clf()
-    X = oned.toarray(X)
+    X = d.toarray(X)
     if(len(X.shape) != 1):
         raise Exception("PyKMTools: Drawing Error: Input data is not 1-dim")
     plt.subplots()
     plt.plot(range(len(X)),X)
-
     # Set Figure Style
     plt.title(Title)
     plt.xlabel(XLabel)
     plt.ylabel(YLabel)
-    plt.savefig(SavePath, dpi = 200)
-    plt.close()
 
-def PlotAndSaveTwoCurve(Input, SavePath:str, Title:str = "Title", XLabel:str = "X", YLabel:str = "Y", InputLabels:list = []):
+    if (SavePath != None):
+        plt.savefig(SavePath, dpi = 200)
+        plt.close()
+    else:
+        plt.show()
+
+def PlotTwoCurve(Input, SavePath:str = None, Title:str = "Title", XLabel:str = "X", YLabel:str = "Y", InputLabels:list = []):
     plt.clf()
-    Input = oned.toarray(Input)
+    Input = d.toarray(Input)
+    
     if(len(Input.shape) == 1):
         raise Exception("PyKMTools: Drawing Error: Input data is 1-dim, please use Draw.PlotAndSaveOneD instead")
     
-    fig,ax1 = plt.subplots()
-    ax2 = ax1.twinx()
-    colors = ['b','g']
-    axs = [ax1,ax2]
-    for i, v in enumerate(Input):
-        axs[i].plot(range(len(v)), v,label = InputLabels[i],c = colors[i])
-        if i == 0:
-            axs[i].grid(linestyle='-.')
-        # else:
-            # axs[i].set_axis_off()
-        axs[i].set_xlabel(XLabel)
-        axs[i].set_ylabel(YLabel)
-        axs[i].legend()
+    if len(Input[0]) != len(Input[1]):
+        raise ValueError('The two curves do not have the same length.')
 
-    # if(YLim != None):
-    #     plt.ylim(YLim)
-
-    # Set Figure Style
+    fig = plt.figure()
+    ax1 = fig.add_subplot(111)
     
-    # plt.grid(linestyle='-.')
     plt.title(Title)
-    plt.savefig(SavePath, dpi = 200)
-    plt.close()
+    ax1.set_xlabel(XLabel)
+
+    color = 'tab:blue'
+    ax1.set_ylabel(YLabel, color=color)
+    ax1.plot(Input[0], color=color)
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()
+
+    color = 'tab:red'
+    ax2.set_ylabel(YLabel, color=color)
+    ax2.plot(Input[1], color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    if InputLabels:
+        ax1.legend([InputLabels[0]], loc='upper left')
+        ax2.legend([InputLabels[1]], loc='upper right')
+    if (SavePath != None):
+        plt.savefig(SavePath, dpi = 200)
+        plt.close()
+    else:
+        plt.show()
 
 def HeatMapAndSave(Input, SavePath:str,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
     plt.clf()

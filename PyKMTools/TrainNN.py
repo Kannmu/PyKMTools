@@ -424,7 +424,7 @@ class TrainProcess:
 
             self.TrainLossArray = np.append(self.TrainLossArray, np.mean(Train_Loss_List))
             self.TrainAccArray = np.append(self.TrainAccArray, float(Correct_All / self.TrainSize))
-            dr.PlotAndSaveTwoCurve(
+            dr.PlotTwoCurve(
                 np.array([self.TrainLossArray, self.TrainAccArray]),
                 self.FigurePath + "TrainLogPlot.png",
                 InputLabels=["Loss", "Accuracy"],
@@ -490,7 +490,7 @@ class TrainProcess:
         # Save Loss and Acc Curve
         # print(np.array([self.LossList, self.AccList]))
 
-        dr.PlotAndSaveTwoCurve(
+        dr.PlotTwoCurve(
             np.array([self.ValLossList, self.ValAccList]),
             self.FigurePath + "ValLogPlot.png",
             InputLabels=["Loss", "Accuracy"],

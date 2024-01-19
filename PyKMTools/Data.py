@@ -16,8 +16,9 @@ Repository: https://github.com/Kannmu/PyKMTools
 # Import necessary modules
 import numpy as np
 import scipy
+import torch as t
 
-def toarray(X, Norm = False, Stand = False):
+def toarray(X:np.ndarray or list or t.Tensor, Norm = False, Stand = False):
     """
     Transfer a data to numpy array
     
@@ -31,6 +32,12 @@ def toarray(X, Norm = False, Stand = False):
     X: numpy array
         data in numpy array type
     """
+    if isinstance(X, list):
+        X = np.array(X)
+    elif isinstance(X, t.Tensor):
+        X = X.numpy()
+    if not isinstance(X, np.ndarray):
+        raise TypeError('Input data type not supported. It should be one of the following: np.ndarray, list, torch.Tensor')
     try:
         X = np.array(X)
         if(Norm):
@@ -149,4 +156,62 @@ def BandPassFilter(X, SampleRate, lowpass, highpass, FilterLevel):
     Temp = scipy.signal.filtfilt(b, a, X)
 
     return Temp
+
+def ReverseData(X:np.ndarray or list or t.Tensor, Axis:int = 0):
+    if isinstance(X, list):
+        X = np.array(X)
+    elif isinstance(X, t.Tensor):
+        X = X.numpy()
+
+    if not isinstance(X, np.ndarray):
+        raise TypeError('Input data type not supported. It should be one of the following: np.ndarray, list, torch.Tensor')
+
+    if Axis >= X.ndim:
+        raise ValueError(f'Invalid axis: {Axis}. Axis should be less than the number of dimensions in X, which is {X.ndim}.')
+    
+    X_reversed = np.flip(X, axis=Axis)
+    return X_reversed
+
+def ReSample(X:np.ndarray or list, Rate:float = 0.9, Axis:int = 0):
+    """
+    Resample the input data along the specified axis
+
+    Parameters
+    ----------
+    X: np.ndarray or list
+        Input data, can be of type numpy array or list
+
+    Rate: float, optional
+        The percentage of the original data to be resampled, default is 0.9
+
+    Axis: int, optional
+        The axis along which the data is to be resampled, default is 0
+
+    Returns
+    ----------
+    X_resampled: np.ndarray
+        The resampled data
+    """
+
+    if isinstance(X, list):
+        X = np.array(X)
+    elif isinstance(X, t.Tensor):
+        X = X.numpy()
+
+    if not isinstance(X, np.ndarray):
+        raise TypeError('Input data type not supported. It should be one of the following: np.ndarray, list, torch.Tensor')
+
+    if Axis >= X.ndim:
+        raise ValueError(f'Invalid axis: {Axis}. Axis should be less than the number of dimensions in X, which is {X.ndim}.')
+    
+    length = X.shape[Axis]
+    resample_length = int(length * Rate)
+
+    start_index = np.random.choice(length - resample_length + 1)
+    slice_obj = [slice(None)]*X.ndim
+    slice_obj[Axis] = slice(start_index, start_index + resample_length)
+
+    X_resampled = X[tuple(slice_obj)]
+    # print(start_index,slice_obj,X_resampled)
+    return X_resampled
 
