@@ -204,19 +204,17 @@ class TrainProcess:
             self.CreateDirs(RunSavePath)
         except Exception as e:
             print("Run path exist, overlap it")
-            # YESORNOT = input(
-            #     str(RunSavePath) + "is already exist, overlap it? [yes/no]  "
-            # )
-            # if YESORNOT in ["yes", "y", "Y", "YES", ""]:
-
-            print("Files in ", RunSavePath, " deleted")
-            shutil.rmtree(RunSavePath)
-            self.CreateDirs(RunSavePath)
-            
-            # elif YESORNOT in ["no", "N", "n", "NO"]:
-            #     RunSavePath = input("Input another model save path")
-            # else:
-            #     raise Exception("Wrong Input")
+            YESORNOT = input(
+                str(RunSavePath) + "is already exist, overlap it? [yes/no]  "
+            )
+            if YESORNOT in ["yes", "y", "Y", "YES", ""]:
+                print("Files in ", RunSavePath, " deleted")
+                shutil.rmtree(RunSavePath)
+                self.CreateDirs(RunSavePath)
+            elif YESORNOT in ["no", "N", "n", "NO"]:
+                RunSavePath = input("Input another model save path")
+            else:
+                raise Exception("Wrong Input")
 
         CodeSavePath = str(DataProcessingPath.split("/")[-1])
 
@@ -310,14 +308,14 @@ class TrainProcess:
             batch_size=self.Batch_Size,
             shuffle=True,
             num_workers=self.Num_Works,
-            drop_last=True,
+            drop_last=False,
         )
         self.ValLoader = DataLoader(
             self.ValDataset,
             batch_size=self.Batch_Size,
             shuffle=True,
             num_workers=self.Num_Works,
-            drop_last=True,
+            drop_last=False,
         )
 
         # self.LoadDataFinishFlag = True
@@ -427,6 +425,9 @@ class TrainProcess:
             dr.PlotTwoCurve(
                 np.array([self.TrainLossArray, self.TrainAccArray]),
                 self.FigurePath + "TrainLogPlot.png",
+                Title="TrainLogPlot",
+                XLabel="Epoch",
+                YLabel="Loss/ACC",
                 InputLabels=["Loss", "Accuracy"],
             )
             torch.cuda.empty_cache()
@@ -493,6 +494,9 @@ class TrainProcess:
         dr.PlotTwoCurve(
             np.array([self.ValLossList, self.ValAccList]),
             self.FigurePath + "ValLogPlot.png",
+            Title="ValLogPlot",
+            XLabel="Epoch",
+            YLabel="Loss/ACC",
             InputLabels=["Loss", "Accuracy"],
         )
         self.Save_Model(ACC=ACC, ValLoss=Val_Loss_Value, CM=CM)
@@ -507,8 +511,9 @@ class TrainProcess:
 
     def Save_Model(self, ACC: float, ValLoss: float, CM):
         # Save Model
-        if ACC > self.Temp_ACC:
+        if ACC > self.Temp_ACC and ValLoss < self.Temp_Loss:
             self.Temp_ACC = ACC
+            self.Temp_Loss = ValLoss
             # Save The Best Model On Validation
             F = open(self.LogPath + "Log.txt", "w+")
             F.writelines(
@@ -520,9 +525,12 @@ class TrainProcess:
                 # + str(self.LossList)
             )
             F.close()
-            # Save Model
-            torch.save(self.Model.state_dict(), self.ModelPath + "Model.pth")
-            torch.save(self.Model, self.ModelPath + "Model.h5")
-
+            
+            try:
+                # Save Model
+                torch.save(self.Model, self.ModelPath + "Model.pth")
+                torch.save(self.Model, self.ModelPath + "Model.h5")
+            except:
+                pass
             # Save CM Figure
-            dr.HeatMapAndSave(CM, self.FigurePath + "Confusion Matrix.png")
+            dr.HeatMap(CM, self.FigurePath + "Confusion Matrix.png")

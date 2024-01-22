@@ -21,10 +21,13 @@ plt.rcParams["font.family"] = ["Times New Roman"]
 def PlotOneD(X, SavePath:str = None,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
     plt.clf()
     X = d.toarray(X)
-    if(len(X.shape) != 1):
-        raise Exception("PyKMTools: Drawing Error: Input data is not 1-dim")
+    if(len(X.shape) != 1 and len(X.shape) != 2):
+        raise Exception("PyKMTools: Drawing Error: Input data in shape",X.shape," is not 1-dim or 2-dim contains X axis")
     plt.subplots()
-    plt.plot(range(len(X)),X)
+    if(len(X.shape) == 1):
+        plt.plot(range(len(X)),X)
+    elif(len(X.shape) == 2):
+        plt.plot(X[0,:],X[1,:])
     # Set Figure Style
     plt.title(Title)
     plt.xlabel(XLabel)
@@ -73,7 +76,7 @@ def PlotTwoCurve(Input, SavePath:str = None, Title:str = "Title", XLabel:str = "
     else:
         plt.show()
 
-def HeatMapAndSave(Input, SavePath:str,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
+def HeatMap(Input, SavePath:str = None,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
     plt.clf()
     plt.subplots()
     sn.heatmap(Input, annot=True)
@@ -82,5 +85,23 @@ def HeatMapAndSave(Input, SavePath:str,Title:str = "Title", XLabel:str = "X", YL
     plt.title(Title)
     plt.xlabel(XLabel)
     plt.ylabel(YLabel)
-    plt.savefig(SavePath, dpi=200)
-    plt.close()
+    if (SavePath != None):
+        plt.savefig(SavePath, dpi=200)
+        plt.close()
+    else:
+        plt.show()
+
+def ImgShow(Input, SavePath:str = None,Title:str = "Title", XLabel:str = "X", YLabel:str = "Y"):
+    plt.clf()
+    plt.subplots()
+    plt.imshow(Input)
+
+    # Set Figure Style
+    plt.title(Title)
+    plt.xlabel(XLabel)
+    plt.ylabel(YLabel)
+    if (SavePath != None):
+        plt.savefig(SavePath, dpi=200)
+        plt.close()
+    else:
+        plt.show()

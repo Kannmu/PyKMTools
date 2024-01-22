@@ -118,7 +118,7 @@ def Amp_FFT(X, SampleRate, HighCutFreq = 100):
     Freq_Index = np.where(Freq <= HighCutFreq)
     Freq = Freq[Freq_Index]
     FFT_Vector = FFT_Vector[: len(Freq)]
-    return Freq, FFT_Vector
+    return np.asarray(Freq), np.asarray(FFT_Vector)
 
 def BandPassFilter(X, SampleRate, lowpass, highpass, FilterLevel):
     """
@@ -162,7 +162,6 @@ def ReverseData(X:np.ndarray or list or t.Tensor, Axis:int = 0):
         X = np.array(X)
     elif isinstance(X, t.Tensor):
         X = X.numpy()
-
     if not isinstance(X, np.ndarray):
         raise TypeError('Input data type not supported. It should be one of the following: np.ndarray, list, torch.Tensor')
 
@@ -172,7 +171,7 @@ def ReverseData(X:np.ndarray or list or t.Tensor, Axis:int = 0):
     X_reversed = np.flip(X, axis=Axis)
     return X_reversed
 
-def ReSample(X:np.ndarray or list, Rate:float = 0.9, Axis:int = 0):
+def ReSample(X:np.ndarray or list, Rate:float = 1.0, Axis:int = 0):
     """
     Resample the input data along the specified axis
 
