@@ -196,9 +196,9 @@ class TrainProcess:
 
         If the user chooses to overwrite, it deletes the existing directory and recreates it. If the user chooses not to overwrite, they are asked to input a new model save path.
 
-        The method also tries to read the 'Log.txt' file in the 'Log' folder under the model save path, retrieves and prints the highest accuracy and the lowest loss so far.
+        The method also tries to read the 'Log.log' file in the 'Log' folder under the model save path, retrieves and prints the highest accuracy and the lowest loss so far.
 
-        If the 'Log.txt' file does not exist, it creates a new 'Log.txt' file.
+        If the 'Log.log' file does not exist, it creates a new 'Log.log' file.
         """
         try:
             self.CreateDirs(RunSavePath)
@@ -224,7 +224,7 @@ class TrainProcess:
         self.Temp_Loss = np.inf
 
         try:
-            F = open("./" + self.LogPath + "Log.txt", "r")
+            F = open("./" + self.LogPath + "Log.log", "r")
             Line = F.readline()
             if Line != "":
                 print(Line)
@@ -237,7 +237,7 @@ class TrainProcess:
                 self.Temp_Loss = np.inf
             F.close()
         except Exception as e:
-            F = open("./" + self.LogPath + "Log.txt", "w+")
+            F = open("./" + self.LogPath + "Log.log", "w+")
             self.Temp_ACC = 0.0
             self.Temp_Loss = np.inf
             F.close()
@@ -515,7 +515,7 @@ class TrainProcess:
             self.Temp_ACC = ACC
             self.Temp_Loss = ValLoss
             # Save The Best Model On Validation
-            F = open(self.LogPath + "Log.txt", "w+")
+            F = open(self.LogPath + "Log.log", "w+")
             F.writelines(
                 "Val_Acc: "
                 + str(ACC)
