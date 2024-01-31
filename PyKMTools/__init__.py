@@ -21,5 +21,5 @@ import PyKMTools.Data as d
 import PyKMTools.TrainNN as tnn
 import PyKMTools.DataArgument as da
 import PyKMTools.Draw as dr
-import Mediapy.Video as vdo
+# import Mediapy.Video as vdo
 

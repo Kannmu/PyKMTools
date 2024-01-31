@@ -1,4 +1,3 @@
-import sys
 import PyKMTools as pk
 import numpy as np
 import torch.nn as nn
@@ -15,12 +14,11 @@ class Model(nn.Module):
         X = self.output(X)
         return X
 
-
 if __name__=="__main__":
     
     DenseModel = Model()
 
-
+    # Optional : Use
     # Model = torchvision.models.resnet18()
     # num_ftrs = Model.fc.in_features
     # Model.fc = nn.Sequential(nn.Linear(num_ftrs, 4))
@@ -32,7 +30,7 @@ if __name__=="__main__":
         N_Targets=4,
         Num_Works=0,
         RunSavePath="./Runs/Test/",
-        DataProcessingPath="./UsageDemo.py"
+        DataProcessingPath="./UsageDemo.py" # This .py File itself will save a copy in every run
     )
 
     Process = pk.tnn.TrainProcess(
@@ -43,17 +41,9 @@ if __name__=="__main__":
     )
 
     X = [[i,2*i] for i in np.arange(0,100,0.1)]
-    # print(np.asarray(X).shape)
 
     Y = [int((j[0]+j[1])%4) for j in X]
-    
-    # print(Y)
-
-    # sys.exit(0)
 
     Process.LoadData(X, Y)
 
     Process.StartTrain()
-
-    # Video = pk.vdo.Video("your_video_path/Video_0.mp4")
-    # Video.FrameExtractor(fps=1, quality=2)
